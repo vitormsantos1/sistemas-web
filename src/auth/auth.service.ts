@@ -6,10 +6,12 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async validarAcesso(credenciais: LoginDto) {
-
     const usuario = await this.prisma.user.findUnique({
       where: { email: credenciais.email },
     });
@@ -18,19 +20,22 @@ export class AuthService {
       throw new UnauthorizedException('e-mail e/ou senha incorretos.');
     }
 
-    const senhaValida = await bcrypt.compare(credenciais.senha, usuario.password);
+    const senhaValida = await bcrypt.compare(
+      credenciais.password,
+      usuario.password,
+    );
 
     if (!senhaValida) {
       throw new UnauthorizedException('E-mail e/ou senha incorretos.');
     }
 
-    const payload = { 
-      sub: usuario.id, 
-      email: usuario.email 
+    const payload = {
+      sub: usuario.id,
+      email: usuario.email,
     };
 
-    return {
-      access_token: await this.jwtService.signAsync(payload),
-    };
+    const accessToken = this.jwtService.sign(payload);
+
+    return { accessToken };
   }
 }
